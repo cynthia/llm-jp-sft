@@ -65,17 +65,10 @@ for seg in segments_to_fit:
     print(tokenizer.decode(input_ids[seg]))
     print()
 
-# モデルの量子化の設定
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,  # 4ビット量子化のパラメータを読み込む
-    bnb_4bit_quant_type="nf4",  # NF4量子化を使用
-    bnb_4bit_compute_dtype=torch.bfloat16,  # 計算時のデータ型としてBF16を使用
-)
 
 model = AutoModelForCausalLM.from_pretrained(
     base_model_name,
     torch_dtype=torch.bfloat16,
-    quantization_config=quantization_config,  # 量子化設定
     use_cache=False,  # 後にgradient checkpointingを有効にするために必要
     device_map="auto",
 )
