@@ -100,7 +100,7 @@ def load_chat_datasets(data_files):
     for data_file in data_files:
         
         dataset = load_dataset("json", data_files=data_file)
-        dataset = dataset["train"].select(range(10))
+        dataset = dataset["train"]
         datasets.append(dataset)
     
     return concatenate_datasets(datasets)
