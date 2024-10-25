@@ -22,7 +22,7 @@ tokenizer_name = "tokyotech-llm/Llama-3.1-Swallow-8B-Instruct-v0.1"
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 tokenized_dataset = [
     tokenizer.apply_chat_template(item["conversation"])
-    for item in dataset.select(range(1000))
+    for item in dataset.select(range(5000))
 ]
 
 instruction_ids = tokenizer.encode("<|start_header_id|>user<|end_header_id|>\n\n")[1:] # no begin of text
@@ -42,16 +42,14 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map="auto",
 )
      
-#model.config.eos_token_id = [
-#    128001,
-#    128008,
-#    128009
-#  ]
+model.config.eos_token_id = [
+    128001,
+    128008,
+    128009
+  ]
 
-#model.generation_config.eos_token_id = [
-#    128001,
-#    128008,
-#    128009]
+#model.config.pad_token_id = tokenizer.pad_token_id
+#model.config.eos_token_id = tokenizer.eos_token_id
 
 # 学習パラメータ
 training_args = TrainingArguments(
@@ -71,7 +69,7 @@ training_args = TrainingArguments(
     save_steps=300,  # モデルの保存頻度
 )
 
-tokenized_dataset = tokenized_dataset[:50000]
+tokenized_dataset = tokenized_dataset
 
 trainer = Trainer(
     model,
@@ -95,6 +93,9 @@ tokenized_chat = tokenizer.apply_chat_template(
     add_generation_prompt=True,
     return_tensors="pt"
 )
+
+model.generation_config.eos_token_id = [128001, 128008, 128009]
+
 generated_tokens = model.generate(tokenized_chat, max_new_tokens=2048)
 generated_text = tokenizer.decode(generated_tokens[0])
 print(generated_text)
