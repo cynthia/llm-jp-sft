@@ -110,6 +110,7 @@ def main() -> None:
     parser = HfArgumentParser((TrainingArguments, SFTTrainingArguments))
     training_args, sft_training_args = parser.parse_args_into_dataclasses()
 
+
     tokenizer_name_or_path: str = (
         sft_training_args.tokenizer_name_or_path or sft_training_args.model_name_or_path
     )
@@ -117,7 +118,7 @@ def main() -> None:
     
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_name_or_path,
-        # use_fast=sft_training_args.use_fast,
+        use_fast=sft_training_args.use_fast,
         additional_special_tokens=sft_training_args.additional_special_tokens,
         trust_remote_code=True,
     )
