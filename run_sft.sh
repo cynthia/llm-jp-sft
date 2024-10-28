@@ -1,6 +1,21 @@
-python train_llm.py --output_dir ./results \
---run_name test \
---data_files /home/ma.y/Research/swallow/lmsys-chat-1m/release_candidates/dataset/lmsys-chat-1m-synth-sft.jsonl.gz \
+#! /bin/sh
+#$ -cwd
+#$ -l node_h=1
+#$ -l h_rt=24:00:00
+
+HUGGINGFACE_CACHE=/gs/bs/tga-okazaki/ma/cache
+
+export HUGGINGFACE_HUB_CACHE=$HUGGINGFACE_CACHE
+export HF_HOME=$HUGGINGFACE_CACHE
+
+eval "$(/apps/t4/rhel9/free/miniconda/24.1.2/bin/conda shell.bash hook)"
+conda activate llm-jp-sft
+
+NAME=llama-3.1-swallow_lmsys
+
+python train_llm.py --output_dir /gs/bs/tga-okazaki/ma/$NAME \
+--run_name $NAME \
+--data_files /gs/bs/tga-okazaki/ma/lmsys-chat-1m/lmsys-chat-1m-synth-sft.jsonl.gz  \
 --model_name_or_path tokyotech-llm/Llama-3.1-Swallow-8B-v0.1 \
 --tokenizer_name_or_path tokyotech-llm/Llama-3.1-Swallow-8B-Instruct-v0.1 \
 --fp16 \
