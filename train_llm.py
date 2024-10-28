@@ -118,7 +118,7 @@ def main():
         
     logger.info("Tokenizing dataset")
     
-    tokenized_dataset = [tokenizer.apply_chat_template(item["conversation"]) for item in dataset.select(range(1000))]
+    tokenized_dataset = [tokenizer.apply_chat_template(item["conversation"]) for item in dataset]
     
     logger.info("Formatting prompts")
 
