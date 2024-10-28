@@ -30,7 +30,7 @@ python train_llm.py --output_dir /gs/bs/tga-okazaki/ma/$NAME \
 --optim paged_adamw_8bit \
 --learning_rate ${LR} \
 --lr_scheduler_type cosine_with_min_lr \
---lr_scheduler_kwargs '{"min_lr":'${MINLR}'}'
+--lr_scheduler_kwargs '{"min_lr":'${MINLR}'}' \
 --weight_decay ${WD} \
 --warmup_ratio 0.1 \
 --logging_steps 10 \
