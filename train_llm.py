@@ -155,7 +155,9 @@ def main():
 
     logger.info("Training")
     trainer.train(resume_from_checkpoint=True)
-
+    
+    model.generation_config.eos_token_id = [128001, 128008, 128009]
+    
     logger.info("Saving model")
     trainer.save_model()
     
@@ -169,7 +171,6 @@ def main():
         return_tensors="pt"
     )
 
-    model.generation_config.eos_token_id = [128001, 128008, 128009]
 
     generated_tokens = model.generate(tokenized_chat, max_new_tokens=2048)
     generated_text = tokenizer.decode(generated_tokens[0])
