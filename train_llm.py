@@ -91,6 +91,7 @@ def load_chat_datasets(files):
 
 def main():
     parser = HfArgumentParser((TrainingArguments, SFTTrainingArguments))
+    print(parser)
     training_args, sft_training_args = parser.parse_args_into_dataclasses()    
     
     tokenizer_name_or_path: str = (
@@ -117,7 +118,7 @@ def main():
         
     logger.info("Tokenizing dataset")
     
-    tokenized_dataset = [tokenizer.apply_chat_template(item["conversation"]) for item in dataset]
+    tokenized_dataset = [tokenizer.apply_chat_template(item["conversation"]) for item in dataset.select(range(1000))]
     
     logger.info("Formatting prompts")
 
@@ -154,7 +155,7 @@ def main():
 )
 
     logger.info("Training")
-    trainer.train(resume_from_checkpoint=True)
+    trainer.train()
     
     model.generation_config.eos_token_id = [128001, 128008, 128009]
     
@@ -163,13 +164,13 @@ def main():
     
     logger.info("Test run")
     
-    messages = dataset[1]["conversation"][0]
+    messages = [dataset[1]["conversation"][0]]
     tokenized_chat = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
         add_generation_prompt=True,
         return_tensors="pt"
-    )
+    ).to('cuda' if torch.cuda.is_available() else 'cpu')
 
 
     generated_tokens = model.generate(tokenized_chat, max_new_tokens=2048)
