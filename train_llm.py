@@ -21,6 +21,11 @@ set_seed(42)
 logger = logging.getLogger(__name__)
 transformers.logging.set_verbosity_info()
 
+
+def apply_chat_template(example, tokenizer):
+    example["tokenized"]= tokenizer.apply_chat_template(example["conversation"])
+    return example
+
 @dataclass
 class SFTTrainingArguments:
     model_name_or_path: str
@@ -29,6 +34,8 @@ class SFTTrainingArguments:
     tokenizer_name_or_path: Optional[str] = None
     use_fast: bool = True
     additional_special_tokens: list[str] = None
+    max_seq_length: int = 4096
+    preprocessing_num_workers: int = 8
     load_in_8bit: bool = False
     load_in_4bit: bool = False
     use_flash_attention_2: bool = False
@@ -40,7 +47,7 @@ class SFTTrainingArguments:
     peft_lora_dropout: float = 0.05
 
     def __post_init__(self):
-        if self.load_in_8bit and self.load_in_4bit:
+        if self.load_in_8bit and self.loadi_in_4bit:
             raise ValueError("load_in_8bit and load_in_4bit are mutually exclusive")
         if self.peft_target_model and self.peft_target_modules is None:
             if self.peft_target_model == "llm-jp":
@@ -118,7 +125,15 @@ def main():
         
     logger.info("Tokenizing dataset")
     
-    tokenized_dataset = [tokenizer.apply_chat_template(item["conversation"]) for item in dataset]
+    dataset = dataset.map(
+            apply_chat_template,
+            fn_kwargs={
+                "tokenizer": tokenizer,
+                },
+            num_proc=sft_training_args.preprocessing_num_workers,
+            desc="Applying chat template",
+            )
+    tokenized_dataset = dataset["tokenized"]
     
     logger.info("Formatting prompts")
 
@@ -139,7 +154,6 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         sft_training_args.model_name_or_path,
         use_cache=False,
-        device_map="auto",
         trust_remote_code=True,
     )
     
