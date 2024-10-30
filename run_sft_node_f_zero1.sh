@@ -17,7 +17,7 @@ WD=0.1
 NAME=llama-3.1-swallow_lmsys_adamw_0.95_LR_${LR}_MINLR_${MINLR}_WD_${WD}_EPOCH_2
 
 
-accelerate launch --config_file configs/my_accelerate_config_zero3.yaml train_llm.py --output_dir /gs/bs/tga-okazaki/ma/$NAME \
+accelerate launch --config_file configs/my_accelerate_config_zero1.yaml train_llm.py --output_dir /gs/bs/tga-okazaki/ma/$NAME \
 --run_name $NAME \
 --data_files /gs/bs/tga-okazaki/ma/lmsys-chat-1m/lmsys-chat-1m-synth-sft.jsonl.gz  \
 --model_name_or_path tokyotech-llm/Llama-3.1-Swallow-8B-v0.1 \
