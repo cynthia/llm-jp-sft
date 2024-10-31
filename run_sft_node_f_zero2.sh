@@ -16,7 +16,7 @@ MINLR=2.5e-6
 WD=0.1
 NAME=$1
 
-accelerate launch --config_file configs/my_accelerate_config_zero3.yaml train_llm.py --output_dir /gs/bs/tga-okazaki/ma/$NAME \
+accelerate launch --config_file configs/my_accelerate_config_zero2.yaml train_llm.py --output_dir /gs/bs/tga-okazaki/ma/$NAME \
 --run_name $NAME \
 --data_files /gs/bs/tga-okazaki/ma/lmsys-chat-1m/lmsys-chat-1m-synth-ja-wo-pii-and-template-instructions.jsonl.gz /gs/bs/tga-okazaki/ma/lmsys-chat-1m/lmsys-chat-1m-synth-en-wo-pii-and-template-instructions.jsonl.gz  \
 --model_name_or_path tokyotech-llm/Llama-3.1-Swallow-8B-v0.1 \
