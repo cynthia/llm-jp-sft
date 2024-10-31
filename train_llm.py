@@ -98,11 +98,11 @@ def load_chat_datasets(files):
 
 def main():
     parser = HfArgumentParser((TrainingArguments, SFTTrainingArguments))
-    print(parser)
+    #print(parser)
     training_args, sft_training_args = parser.parse_args_into_dataclasses()    
     
     tokenizer_name_or_path: str = (
-        sft_training_args.tokenizer_name_or_path or sft_training_args.model_name_or_path
+        sft_training_args.tokenizer_name_or_path
     )
     logger.info(f"Loading tokenizer from {tokenizer_name_or_path}")
     
@@ -112,7 +112,23 @@ def main():
         additional_special_tokens=sft_training_args.additional_special_tokens,
         trust_remote_code=True,
     )
+
+    chat_template = tokenizer.chat_template
+    eos_token = tokenizer.eos_token
+    pad_token = tokenizer.pad_token
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        sft_training_args.model_name_or_path,
+        use_fast=sft_training_args.use_fast,
+        additional_special_tokens=sft_training_args.additional_special_tokens,
+        trust_remote_code=True,
+    )
     
+    tokenizer.chat_template = chat_template
+    tokenizer.eos_token = eos_token
+    tokenizer.pad_token = pad_token
+    
+    print(tokenizer.special_tokens_map, "ids:", tokenizer.all_special_ids)
     logger.info("Loading data")
     
     
@@ -133,6 +149,7 @@ def main():
             num_proc=sft_training_args.preprocessing_num_workers,
             desc="Applying chat template",
             )
+
     tokenized_dataset = dataset["tokenized"]
     
     logger.info("Formatting prompts")
