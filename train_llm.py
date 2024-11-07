@@ -44,7 +44,6 @@ class SFTTrainingArguments:
     peft_lora_r: int = 8
     peft_lora_alpha: int = 32
     peft_lora_dropout: float = 0.05
-    seed: int = 42
     
     def __post_init__(self):
         if self.load_in_8bit and self.loadi_in_4bit:
@@ -101,8 +100,8 @@ def main():
     #print(parser)
     training_args, sft_training_args = parser.parse_args_into_dataclasses()    
     
-    set_seed(sft_training_args.seed)
-    logger.info(f"Set seed: {sft_training_args.seed}")
+    set_seed(training_args.seed)
+    logger.info(f"Set seed: {training_args.seed}")
     
     tokenizer_name_or_path: str = (
         sft_training_args.tokenizer_name_or_path or sft_training_args.model_name_or_path
