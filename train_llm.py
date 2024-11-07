@@ -130,7 +130,7 @@ def main():
         
     logger.info("Tokenizing dataset")
     
-    dataset = dataset.select(range(1000)).map(
+    dataset = dataset.map(
             apply_chat_template,
             fn_kwargs={
                 "tokenizer": tokenizer,
