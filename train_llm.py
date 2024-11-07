@@ -22,7 +22,9 @@ transformers.logging.set_verbosity_info()
 
 
 def apply_chat_template(example, tokenizer):
-    example["tokenized"]= tokenizer.apply_chat_template(example["conversation"])
+    conversation = example["conversation"]
+    stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
+    example["tokenized"]= tokenizer.apply_chat_template(stripped_conversation)
     return example
 
 @dataclass
@@ -128,7 +130,7 @@ def main():
         
     logger.info("Tokenizing dataset")
     
-    dataset = dataset.map(
+    dataset = dataset.select(range(1000)).map(
             apply_chat_template,
             fn_kwargs={
                 "tokenizer": tokenizer,
