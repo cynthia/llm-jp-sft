@@ -23,8 +23,8 @@ transformers.logging.set_verbosity_info()
 
 def apply_chat_template(example, tokenizer):
     conversation = example["conversation"]
-    stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
-    example["tokenized"]= tokenizer.apply_chat_template(stripped_conversation)
+    #stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
+    example["tokenized"]= tokenizer.apply_chat_template(conversation)
     return example
 
 @dataclass
