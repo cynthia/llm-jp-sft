@@ -1,5 +1,6 @@
 import torch
 import logging
+import itertools
 import transformers
 from typing import Optional
 from dataclasses import dataclass
@@ -22,7 +23,9 @@ transformers.logging.set_verbosity_info()
 
 
 def apply_chat_template(example, tokenizer):
-    conversation = example["conversation"]
+    system_prompt = [{"content": "あなたは誠実で優秀な日本人のアシスタントです。", "role": "system"}]
+    conversation = system_prompt + example["conversation"]
+    # conversation = example["conversation"]
     #stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
     example["tokenized"]= tokenizer.apply_chat_template(conversation)
     return example
@@ -153,6 +156,37 @@ def main():
         tokenizer=tokenizer,
     )
 
+    # # for debugging purpose
+    # batch = collator(tokenized_dataset[:1])
+    # input_ids = batch["input_ids"][0]
+    # labels = batch["labels"][0]
+    # print("入力トークンID:", input_ids)
+    # print("正解ラベル:", labels)
+    
+    
+    # segments_to_fit: list[list[int]] = []
+    # segments_to_ignore: list[list[int]] = []
+    # # ラベルが-100である箇所とそうでない箇所ごとにグルーピング
+    # for key, group in itertools.groupby(
+    #     range(len(input_ids)), key=lambda i: labels[i] == -100
+    # ):
+    #     group = list(group)
+    #     if key:
+    #         segments_to_ignore.append(group)
+    #     else:
+    #         segments_to_fit.append(group)
+    
+    # print("---- 損失を計算しない部分 ----")
+    # for seg in segments_to_ignore:
+    #     print(tokenizer.decode(input_ids[seg]))
+    #     print()
+    
+    # print("---- 損失を計算する部分 ----")
+    # for seg in segments_to_fit:
+    #     print(tokenizer.decode(input_ids[seg]))
+    #     print()
+    ## ------------debugging------------
+
     logger.info(f"Loading model from {sft_training_args.model_name_or_path}")
     
     logger.debug(
@@ -164,7 +198,7 @@ def main():
         trust_remote_code=True,
     )
     
-    model.config.eos_token_id = [128001, 128008, 128009]
+    # model.config.eos_token_id = [128001, 128008, 128009]
 
     logger.info("Setting up trainer")
     trainer = Trainer(
@@ -179,6 +213,7 @@ def main():
     trainer.train()
     #trainer.train(resume_from_checkpoint = True)
     
+    model.config.eos_token_id = [128001, 128008, 128009]
     model.generation_config.eos_token_id = [128001, 128008, 128009]
     
     logger.info("Saving model")

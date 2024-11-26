@@ -23,7 +23,9 @@ transformers.logging.set_verbosity_info()
 
 
 def apply_chat_template(example, tokenizer):
-    conversation = example["conversation"]
+    system_prompt = [{"content": "あなたは誠実で優秀なアシスタントです。どうか、簡潔かつ正直に答えてください。", "role": "system"}]
+    conversation = system_prompt + example["conversation"]
+    # conversation = example["conversation"]
     #stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
     example["tokenized"]= tokenizer.apply_chat_template(conversation)
     return example
@@ -154,7 +156,7 @@ def main():
         tokenizer=tokenizer,
     )
     
-    ## for debugging purpose
+    # # for debugging purpose
     # batch = collator(tokenized_dataset[:1])
     # input_ids = batch["input_ids"][0]
     # labels = batch["labels"][0]

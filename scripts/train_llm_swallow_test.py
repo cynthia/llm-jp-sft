@@ -23,7 +23,8 @@ transformers.logging.set_verbosity_info()
 
 
 def apply_chat_template(example, tokenizer):
-    conversation = [{"content":"以下は、タスクを説明する指示です。要求を適切に満たす応答を書きなさい。", "role": "system"}] + example["conversation"]
+    system_prompt = [{"content": "あなたは誠実で優秀な日本人のアシスタントです。", "role": "system"}]
+    conversation = system_prompt + example["conversation"]
     # conversation = example["conversation"]
     #stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
     example["tokenized"]= tokenizer.apply_chat_template(conversation)
@@ -119,6 +120,7 @@ def main():
         trust_remote_code=True,
     )
 
+    tokenizer.pad_token = "<|finetune_right_pad_id|>"
     print(tokenizer.special_tokens_map, "ids:", tokenizer.all_special_ids)
     logger.info("Loading data")
     
@@ -132,21 +134,21 @@ def main():
         
     logger.info("Tokenizing dataset")
     
-    dataset = dataset.map(
+    dataset = dataset.select(range(10)).map(
             apply_chat_template,
             fn_kwargs={
                 "tokenizer": tokenizer,
                 },
             num_proc=sft_training_args.preprocessing_num_workers,
-            desc="Applying chat template",
+            desc="Applying chat template"
             )
 
     tokenized_dataset = dataset["tokenized"]
     
     logger.info("Formatting prompts")
 
-    instruction_ids = tokenizer.encode("\n\n### 指示:\n", add_special_tokens=False)[1:]
-    response_ids = tokenizer.encode("\n\n### 応答:\n", add_special_tokens=False)[1:]
+    instruction_ids = tokenizer.encode("<|start_header_id|>user<|end_header_id|>\n\n")[1:] # no begin of text
+    response_ids = tokenizer.encode("<|start_header_id|>assistant<|end_header_id|>\n\n")[1:] # no begin of text
     
     collator = DataCollatorForCompletionOnlyLM(
         instruction_template=instruction_ids,
@@ -154,37 +156,36 @@ def main():
         tokenizer=tokenizer,
     )
 
-
-    # ## for debugging purpose
-    # batch = collator(tokenized_dataset[:1])
-    # input_ids = batch["input_ids"][0]
-    # labels = batch["labels"][0]
-    # print("入力トークンID:", input_ids)
-    # print("正解ラベル:", labels)
-
-
-    # segments_to_fit: list[list[int]] = []
-    # segments_to_ignore: list[list[int]] = []
-    # # ラベルが-100である箇所とそうでない箇所ごとにグルーピング
-    # for key, group in itertools.groupby(
-    #    range(len(input_ids)), key=lambda i: labels[i] == -100
-    # ):
-    #    group = list(group)
-    #    if key:
-    #        segments_to_ignore.append(group)
-    #    else:
-    #        segments_to_fit.append(group)
-
-    # print("---- 損失を計算しない部分 ----")
-    # for seg in segments_to_ignore:
-    #    print(tokenizer.decode(input_ids[seg]))
-    #    print()
-
-    # print("---- 損失を計算する部分 ----")
-    # for seg in segments_to_fit:
-    #    print(tokenizer.decode(input_ids[seg]))
-    #    print()
-
+    # for debugging purpose
+    batch = collator(tokenized_dataset[:1])
+    input_ids = batch["input_ids"][0]
+    labels = batch["labels"][0]
+    print("入力トークンID:", input_ids)
+    print("正解ラベル:", labels)
+    
+    
+    segments_to_fit: list[list[int]] = []
+    segments_to_ignore: list[list[int]] = []
+    # ラベルが-100である箇所とそうでない箇所ごとにグルーピング
+    for key, group in itertools.groupby(
+        range(len(input_ids)), key=lambda i: labels[i] == -100
+    ):
+        group = list(group)
+        if key:
+            segments_to_ignore.append(group)
+        else:
+            segments_to_fit.append(group)
+    
+    print("---- 損失を計算しない部分 ----")
+    for seg in segments_to_ignore:
+        print(tokenizer.decode(input_ids[seg]))
+        print()
+    
+    print("---- 損失を計算する部分 ----")
+    for seg in segments_to_fit:
+        print(tokenizer.decode(input_ids[seg]))
+        print()
+    # ------------debugging------------
 
     logger.info(f"Loading model from {sft_training_args.model_name_or_path}")
     
@@ -195,7 +196,15 @@ def main():
         sft_training_args.model_name_or_path,
         use_cache=False,
         trust_remote_code=True,
-    )  
+        output_attentions=True,
+    )
+
+    eot_ids = [i for i in range(len(input_ids)) if input_ids[i] == 128009]
+    output = model(input_ids=batch["input_ids"], output_attentions=True, return_dict=True)
+    print(output.attentions[0][:,:,:,eot_ids[0]])
+  
+    exit(0)
+    # model.config.eos_token_id = [128001, 128008, 128009]
 
     logger.info("Setting up trainer")
     trainer = Trainer(
@@ -204,13 +213,14 @@ def main():
     data_collator=collator,  # ラベルの加工及びミニバッチ構築処理を行うモジュール
     args=training_args,  # 訓練の設定
     tokenizer=tokenizer,  # パラメータ保存時にトークナイザも一緒に保存するために指定
-    )
-    
+)
 
     logger.info("Training")
     trainer.train()
     #trainer.train(resume_from_checkpoint = True)
     
+    model.config.eos_token_id = [128001, 128008, 128009]
+    model.generation_config.eos_token_id = [128001, 128008, 128009]
     
     logger.info("Saving model")
     trainer.save_model()
