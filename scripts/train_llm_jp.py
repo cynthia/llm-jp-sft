@@ -208,7 +208,7 @@ def main():
     
 
     logger.info("Training")
-    trainer.train()
+    trainer.train(resume_from_checkpoint = training_args.resume_from_checkpoint)
     #trainer.train(resume_from_checkpoint = True)
     
     

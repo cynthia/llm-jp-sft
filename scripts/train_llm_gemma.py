@@ -23,12 +23,10 @@ transformers.logging.set_verbosity_info()
 
 
 def apply_chat_template(example, tokenizer):
-    if example["conversation"][0]["role"] != "system":
-        system_prompt = [{"content": "あなたは誠実で優秀な日本人のアシスタントです。", "role": "system"}]
-        conversation = system_prompt + example["conversation"]
-    else:
-        conversation = example["conversation"]
-    #stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
+    # system_prompt = [{"content": "あなたは誠実で優秀な日本人のアシスタントです。", "role": "system"}]
+    # conversation = system_prompt + example["conversation"]
+    conversation = example["conversation"]
+    # stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
     example["tokenized"]= tokenizer.apply_chat_template(conversation)
     return example
 
@@ -122,7 +120,6 @@ def main():
         trust_remote_code=True,
     )
 
-    tokenizer.pad_token = "<|finetune_right_pad_id|>"
     print(tokenizer.special_tokens_map, "ids:", tokenizer.all_special_ids)
     logger.info("Loading data")
     
@@ -149,8 +146,8 @@ def main():
     
     logger.info("Formatting prompts")
 
-    instruction_ids = tokenizer.encode("<|start_header_id|>user<|end_header_id|>\n\n")[1:] # no begin of text
-    response_ids = tokenizer.encode("<|start_header_id|>assistant<|end_header_id|>\n\n")[1:] # no begin of text
+    instruction_ids = tokenizer.encode("<start_of_turn>user\n")[1:] # no begin of text
+    response_ids = tokenizer.encode("<start_of_turn>model\n")[1:] # no begin of text
     
     collator = DataCollatorForCompletionOnlyLM(
         instruction_template=instruction_ids,
@@ -158,14 +155,14 @@ def main():
         tokenizer=tokenizer,
     )
 
-    # for debugging purpose
+    # # for debugging purpose
     # batch = collator(tokenized_dataset[:1])
     # input_ids = batch["input_ids"][0]
     # labels = batch["labels"][0]
     # print("入力トークンID:", input_ids)
     # print("正解ラベル:", labels)
-    
-    
+    # 
+    # 
     # segments_to_fit: list[list[int]] = []
     # segments_to_ignore: list[list[int]] = []
     # # ラベルが-100である箇所とそうでない箇所ごとにグルーピング
@@ -177,17 +174,17 @@ def main():
     #         segments_to_ignore.append(group)
     #     else:
     #         segments_to_fit.append(group)
-    
+    # 
     # print("---- 損失を計算しない部分 ----")
     # for seg in segments_to_ignore:
     #     print(tokenizer.decode(input_ids[seg]))
     #     print()
-    
+    # 
     # print("---- 損失を計算する部分 ----")
     # for seg in segments_to_fit:
     #     print(tokenizer.decode(input_ids[seg]))
     #     print()
-    # ------------debugging------------
+    # # ------------debugging------------
 
     logger.info(f"Loading model from {sft_training_args.model_name_or_path}")
     
@@ -200,7 +197,6 @@ def main():
         trust_remote_code=True,
     )
     
-    # model.config.eos_token_id = [128001, 128008, 128009]
 
     logger.info("Setting up trainer")
     trainer = Trainer(
@@ -213,9 +209,9 @@ def main():
 
     logger.info("Training")
     trainer.train(resume_from_checkpoint = training_args.resume_from_checkpoint)
+    #trainer.train(resume_from_checkpoint = True)
     
-    model.config.eos_token_id = [128001, 128008, 128009]
-    model.generation_config.eos_token_id = [128001, 128008, 128009]
+    model.generation_config.eos_token_id = [1, 107]
     
     logger.info("Saving model")
     trainer.save_model()

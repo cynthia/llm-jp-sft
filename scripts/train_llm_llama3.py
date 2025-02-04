@@ -23,11 +23,7 @@ transformers.logging.set_verbosity_info()
 
 
 def apply_chat_template(example, tokenizer):
-    if example["conversation"][0]["role"] != "system":
-        system_prompt = [{"content": "あなたは誠実で優秀な日本人のアシスタントです。", "role": "system"}]
-        conversation = system_prompt + example["conversation"]
-    else:
-        conversation = example["conversation"]
+    conversation = example["conversation"]
     #stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
     example["tokenized"]= tokenizer.apply_chat_template(conversation)
     return example
@@ -158,7 +154,7 @@ def main():
         tokenizer=tokenizer,
     )
 
-    # for debugging purpose
+    # # for debugging purpose
     # batch = collator(tokenized_dataset[:1])
     # input_ids = batch["input_ids"][0]
     # labels = batch["labels"][0]
@@ -187,7 +183,7 @@ def main():
     # for seg in segments_to_fit:
     #     print(tokenizer.decode(input_ids[seg]))
     #     print()
-    # ------------debugging------------
+    ## ------------debugging------------
 
     logger.info(f"Loading model from {sft_training_args.model_name_or_path}")
     
@@ -200,7 +196,7 @@ def main():
         trust_remote_code=True,
     )
     
-    # model.config.eos_token_id = [128001, 128008, 128009]
+    model.config.eos_token_id = [128001, 128008, 128009]
 
     logger.info("Setting up trainer")
     trainer = Trainer(
@@ -214,7 +210,7 @@ def main():
     logger.info("Training")
     trainer.train(resume_from_checkpoint = training_args.resume_from_checkpoint)
     
-    model.config.eos_token_id = [128001, 128008, 128009]
+    #model.config.eos_token_id = [128001, 128008, 128009]
     model.generation_config.eos_token_id = [128001, 128008, 128009]
     
     logger.info("Saving model")

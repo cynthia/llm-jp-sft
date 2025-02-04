@@ -116,9 +116,11 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_name_or_path,
         use_fast=sft_training_args.use_fast,
-        additional_special_tokens=sft_training_args.additional_special_tokens,
+        #additional_special_tokens=sft_training_args.additional_special_tokens,
         trust_remote_code=True,
     )
+
+    print(sft_training_args.additional_special_tokens, tokenizer.additional_special_tokens)
 
     tokenizer.pad_token = "<|finetune_right_pad_id|>"
     print(tokenizer.special_tokens_map, "ids:", tokenizer.all_special_ids)
@@ -203,7 +205,6 @@ def main():
     output = model(input_ids=batch["input_ids"], output_attentions=True, return_dict=True)
     print(output.attentions[0][:,:,:,eot_ids[0]])
   
-    exit(0)
     # model.config.eos_token_id = [128001, 128008, 128009]
 
     logger.info("Setting up trainer")
@@ -216,7 +217,7 @@ def main():
 )
 
     logger.info("Training")
-    trainer.train()
+    #trainer.train()
     #trainer.train(resume_from_checkpoint = True)
     
     model.config.eos_token_id = [128001, 128008, 128009]

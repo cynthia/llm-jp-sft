@@ -210,7 +210,7 @@ def main():
 )
 
     logger.info("Training")
-    trainer.train()
+    trainer.train(resume_from_checkpoint = training_args.resume_from_checkpoint)
     #trainer.train(resume_from_checkpoint = True)
     
     model.generation_config.eos_token_id = [128001, 128009]

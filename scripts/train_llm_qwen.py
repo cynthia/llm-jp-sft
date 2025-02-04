@@ -24,12 +24,12 @@ transformers.logging.set_verbosity_info()
 
 def apply_chat_template(example, tokenizer):
     if example["conversation"][0]["role"] != "system":
-        system_prompt = [{"content": "あなたは誠実で優秀な日本人のアシスタントです。", "role": "system"}]
+        system_prompt = [{"content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.", "role": "system"}]
         conversation = system_prompt + example["conversation"]
     else:
         conversation = example["conversation"]
-    #stripped_conversation = [{"content": t["content"].strip().replace("\n\n", "\n"), "role": t["role"]} for t in conversation]
-    example["tokenized"]= tokenizer.apply_chat_template(conversation)
+    stripped_conversation = [{"content": t["content"].strip(), "role": t["role"]} for t in conversation]
+    example["tokenized"]= tokenizer.apply_chat_template(stripped_conversation)
     return example
 
 @dataclass
@@ -122,7 +122,6 @@ def main():
         trust_remote_code=True,
     )
 
-    tokenizer.pad_token = "<|finetune_right_pad_id|>"
     print(tokenizer.special_tokens_map, "ids:", tokenizer.all_special_ids)
     logger.info("Loading data")
     
@@ -149,20 +148,23 @@ def main():
     
     logger.info("Formatting prompts")
 
-    instruction_ids = tokenizer.encode("<|start_header_id|>user<|end_header_id|>\n\n")[1:] # no begin of text
-    response_ids = tokenizer.encode("<|start_header_id|>assistant<|end_header_id|>\n\n")[1:] # no begin of text
-    
+    instruction_ids = tokenizer.encode("<|im_start|>user\n") # qwen doesn't have begin of text
+    response_ids = tokenizer.encode("<|im_start|>assistant\n") # qwen doesn't have begin of text
+
+    print("instruction:", instruction_ids)
+    print("response:", response_ids)
     collator = DataCollatorForCompletionOnlyLM(
         instruction_template=instruction_ids,
         response_template=response_ids,
         tokenizer=tokenizer,
     )
 
-    # for debugging purpose
-    # batch = collator(tokenized_dataset[:1])
-    # input_ids = batch["input_ids"][0]
-    # labels = batch["labels"][0]
+    # # for debugging purpose
+    # batch = collator(tokenized_dataset[:1000])
+    # input_ids = batch["input_ids"][10]
+    # labels = batch["labels"][10]
     # print("入力トークンID:", input_ids)
+    # print("入力トークン:", tokenizer.decode(input_ids))
     # print("正解ラベル:", labels)
     
     
@@ -185,7 +187,8 @@ def main():
     
     # print("---- 損失を計算する部分 ----")
     # for seg in segments_to_fit:
-    #     print(tokenizer.decode(input_ids[seg]))
+    #     print(tokenizer.convert_ids_to_tokens(input_ids[seg]))
+    #     print(input_ids[seg])
     #     print()
     # ------------debugging------------
 
@@ -199,8 +202,8 @@ def main():
         use_cache=False,
         trust_remote_code=True,
     )
-    
-    # model.config.eos_token_id = [128001, 128008, 128009]
+
+    model.config.eos_token_id = 151645
 
     logger.info("Setting up trainer")
     trainer = Trainer(
@@ -214,8 +217,14 @@ def main():
     logger.info("Training")
     trainer.train(resume_from_checkpoint = training_args.resume_from_checkpoint)
     
-    model.config.eos_token_id = [128001, 128008, 128009]
-    model.generation_config.eos_token_id = [128001, 128008, 128009]
+    model.config.eos_token_id = 151645
+    model.generation_config.eos_token_id = [151645, 151643]
+    model.generation_config.pad_token_id = 151643
+    model.generation_config.do_sample = True
+    model.generation_config.repetition_penalty = 1.05
+    model.generation_config.temperature = 0.7
+    model.generation_config.top_p = 0.8
+    model.generation_config.top_k = 20
     
     logger.info("Saving model")
     trainer.save_model()
