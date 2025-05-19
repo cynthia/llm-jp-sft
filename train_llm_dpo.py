@@ -178,10 +178,16 @@ def main():
     logger.debug(
         f"AutoModelForCausalLM.from_pretrained({dpo_training_args.model_name_or_path}, trust_remote_code=True)"
     )
+    # Enable memory efficient attention if available
+    kwargs = {}
+    if dpo_training_args.use_flash_attention_2:
+        kwargs["attn_implementation"] = "flash_attention_2"
+    
     model = AutoModelForCausalLM.from_pretrained(
         dpo_training_args.model_name_or_path,
         use_cache=False,
         trust_remote_code=True,
+        **kwargs,
     )
     
     model.config.eos_token_id = [128001, 128008, 128009]

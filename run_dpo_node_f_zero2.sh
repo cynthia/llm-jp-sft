@@ -8,6 +8,19 @@ HUGGINGFACE_CACHE=/gs/bs/tga-okazaki/$USER/cache
 export HUGGINGFACE_HUB_CACHE=$HUGGINGFACE_CACHE
 export HF_HOME=$HUGGINGFACE_CACHE
 
+# Memory optimization for H100 GPUs (95830MiB VRAM)
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export CUDA_LAUNCH_BLOCKING=1
+
+# CPU optimization - dynamically detect CPU threads from sysfs
+# Get total online CPUs from sysfs
+TOTAL_CPUS=$(nproc)
+# Divide by number of GPU processes (4 for Zero-2 config)
+THREADS_PER_RANK=$((TOTAL_CPUS / 4))
+export OMP_NUM_THREADS=$THREADS_PER_RANK
+export MKL_NUM_THREADS=$THREADS_PER_RANK
+export NUMEXPR_NUM_THREADS=$THREADS_PER_RANK
+
 eval "$(/apps/t4/rhel9/free/miniconda/24.1.2/bin/conda shell.bash hook)"
 conda activate llm-jp-sft
 
@@ -28,8 +41,8 @@ accelerate launch --config_file configs/my_accelerate_config_zero2.yaml train_ll
 --tokenizer_name_or_path tokyotech-llm/Llama-3.1-Swallow-8B-Instruct-v0.2 \
 --bf16 \
 --num_train_epochs 2 \
---per_device_train_batch 4 \
---gradient_accumulation_steps 16 \
+--per_device_train_batch 3 \
+--gradient_accumulation_steps 21 \
 --gradient_checkpointing \
 --optim adamw_torch \
 --adam_beta2 0.95 \

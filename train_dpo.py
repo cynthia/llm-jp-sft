@@ -189,6 +189,10 @@ def main() -> None:
     logger.debug(
         f"AutoModelForCausalLM.from_pretrained({dpo_training_args.model_name_or_path}, trust_remote_code=True, **kwargs={kwargs})"
     )
+    # Enable memory efficient attention if available
+    if dpo_training_args.use_flash_attention_2:
+        kwargs["attn_implementation"] = "flash_attention_2"
+    
     model = AutoModelForCausalLM.from_pretrained(
         dpo_training_args.model_name_or_path,
         trust_remote_code=True,
