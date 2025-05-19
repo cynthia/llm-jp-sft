@@ -21,6 +21,10 @@ export OMP_NUM_THREADS=$THREADS_PER_RANK
 export MKL_NUM_THREADS=$THREADS_PER_RANK
 export NUMEXPR_NUM_THREADS=$THREADS_PER_RANK
 
+# W&B configuration
+export WANDB_PROJECT=llama-swallow-dpo
+export WANDB_ENTITY=${WANDB_ENTITY:-titech-org}
+
 eval "$(/apps/t4/rhel9/free/miniconda/24.1.2/bin/conda shell.bash hook)"
 conda activate llm-jp-sft
 
@@ -53,4 +57,5 @@ accelerate launch --config_file configs/my_accelerate_config_zero1.yaml train_ll
 --warmup_ratio 0.1 \
 --logging_steps 10 \
 --save_steps 300 \
---beta ${BETA}
+--beta ${BETA} \
+--report_to wandb
